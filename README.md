@@ -1,15 +1,25 @@
 # Miko Bot
 
-Lightweight Miko-style Discord bot for Render deployment.
+A lightweight Miko-style Discord bot designed for Render deployment.
 
 ## Features
 - Slash commands
 - Health check endpoint for Render
-- Modular command structure
-- Easy to customize
-- Ready for deployment on Render
+- Modular bot structure
+- Simple and clean codebase
+- Ready to deploy
 
-## Setup
+## Included commands
+- /help
+- /ping
+- /status
+- /uptime
+- /say
+- /serverinfo
+- /userinfo
+- /botinfo
+
+## Local setup
 
 1. Install dependencies:
 
@@ -17,13 +27,13 @@ Lightweight Miko-style Discord bot for Render deployment.
 npm install
 ```
 
-2. Copy environment variables:
+2. Set up environment variables:
 
 ```bash
 cp .env.example .env
 ```
 
-3. Fill in your Discord values in `.env`:
+Then edit `.env`:
 
 ```env
 DISCORD_TOKEN=YOUR_DISCORD_BOT_TOKEN
@@ -32,29 +42,30 @@ GUILD_ID=YOUR_TEST_GUILD_ID
 PORT=3000
 ```
 
-4. Register slash commands:
+3. Register slash commands:
 
 ```bash
 npm run register
 ```
 
-5. Start the bot:
+4. Start the bot:
 
 ```bash
 npm start
 ```
 
-## Commands
-- `/help`
-- `/ping`
-- `/status`
-- `/say`
-- `/uptime`
-
-## Render Deployment
+## Deploy on Render
 
 Use the included `render.yaml` file.
 
-## Notes
+### Render settings
+- Build Command: `npm install`
+- Start Command: `npm start`
+- Health Check Path: `/health`
 
-The free Render plan may sleep after inactivity, but the application is prepared for health checks and restart-safe operation.
+## Notes
+- Render free tier may sleep after inactivity.
+- For longer uptime, use a paid plan or a persistent host.
+
+## Important
+This bot is a clean, lightweight Miko-inspired base and can be expanded with moderation, music, logs, reactions, and admin commands.

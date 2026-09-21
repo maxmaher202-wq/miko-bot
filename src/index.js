@@ -10,7 +10,8 @@ app.get("/", (req, res) => {
   res.status(200).json({
     status: "online",
     bot: botName,
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -23,8 +24,7 @@ app.get("/health", (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`HTTP health server running on port ${port}`);
-});
+  console.log(`HTTP health server running on port ${port}`);\n});
 
 const client = new Client({
   intents: [
