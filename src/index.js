@@ -1,90 +1,77 @@
-const fs = require("node:fs");
-const path = require("node:path");
 const express = require("express");
-const { Client, Collection, GatewayIntentBits, Events, ActivityType } = require("discord.js");
-const { token, port, botName } = require("./config");
+const crypto = require("node:crypto");
+const { pageAccessToken, verifyToken, appSecret, port, botName } = require("./config");
+const { sendText, sendTyping } = require("./messenger");
+const { getReply } = require("./commands");
 
 const app = express();
+app.use(express.json({
+  verify: (req, res, buffer) => {
+    req.rawBody = buffer;
+  }
+}));
+
+function validSignature(req) {
+  if (!appSecret) return true;
+  const signature = req.get("x-hub-signature-256");
+  if (!signature || !req.rawBody) return false;
+
+  const expected = `sha256=${crypto
+    .createHmac("sha256", appSecret)
+    .update(req.rawBody)
+    .digest("hex")}`;
+
+  return signature.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+}
 
 app.get("/", (req, res) => {
-  res.status(200).json({
-    status: "online",
-    bot: botName,
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString()
-  });
+  res.json({ status: "online", bot: botName, uptime: process.uptime() });
 });
 
 app.get("/health", (req, res) => {
-  res.status(200).json({
-    ok: true,
-    bot: botName,
-    timestamp: new Date().toISOString()
-  });
+  res.json({ ok: true, bot: botName, uptime: process.uptime() });
 });
 
-app.listen(port, () => {
-  console.log(`HTTP health server running on port ${port}`);\n});
+app.get("/webhook", (req, res) => {
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
-});
-
-client.commands = new Collection();
-
-const commandsPath = path.join(__dirname, "commands");
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"));
-
-for (const file of commandFiles) {
-  const filePath = path.join(commandsPath, file);
-  const command = require(filePath);
-
-  if ("data" in command && "execute" in command) {
-    client.commands.set(command.data.name, command);
+  if (mode === "subscribe" && token === verifyToken) {
+    return res.status(200).send(challenge);
   }
-}
-
-client.on(Events.ClientReady, () => {
-  console.log(`Connected: ${client.user.tag}`);
-
-  client.user.setPresence({
-    activities: [{
-      name: "Miko Bot | /help",
-      type: ActivityType.Watching
-    }],
-    status: "online"
-  });
+  return res.sendStatus(403);
 });
 
-client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isChatInputCommand()) return;
+app.post("/webhook", async (req, res) => {
+  if (!validSignature(req)) return res.sendStatus(403);
+  if (req.body.object !== "page") return res.sendStatus(404);
 
-  const command = client.commands.get(interaction.commandName);
-  if (!command) return;
+  // Respond immediately so Meta does not retry the webhook.
+  res.sendStatus(200);
 
-  try {
-    await command.execute(interaction);
-  } catch (error) {
-    console.error(error);
+  for (const entry of req.body.entry || []) {
+    for (const event of entry.messaging || []) {
+      if (!event.sender?.id || !event.message?.text || event.message.is_echo) continue;
 
-    const reply = {
-      content: "حدث خطأ أثناء تنفيذ الأمر.",
-      ephemeral: true
-    };
+      const senderId = event.sender.id;
+      const text = event.message.text.trim();
 
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(reply);
-    } else {
-      await interaction.reply(reply);
+      try {
+        await sendTyping(senderId, true);
+        const reply = await getReply(text, { senderId, botName });
+        if (reply) await sendText(senderId, reply);
+      } catch (error) {
+        console.error("Message handling error:", error);
+        await sendText(senderId, "حدث خطأ مؤقتًا. حاول مرة أخرى بعد قليل.");
+      } finally {
+        await sendTyping(senderId, false).catch(() => {});
+      }
     }
   }
 });
 
-client.login(token).catch(error => {
-  console.error("Failed to log in:", error);
-  process.exit(1);
+app.listen(port, () => {
+  console.log(`${botName} Messenger bot is listening on port ${port}`);
 });

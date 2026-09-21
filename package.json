@@ -1,23 +1,18 @@
 {
-  "name": "miko-bot",
+  "name": "miko-messenger-bot",
   "version": "1.0.0",
-  "description": "Lightweight Miko-style Discord bot ready for Render",
+  "description": "Arabic Facebook Messenger group bot named Miko using the official Meta Messenger Platform API",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js",
-    "register": "node src/register-commands.js"
+    "dev": "node --watch src/index.js"
   },
-  "keywords": [
-    "discord",
-    "bot",
-    "miko",
-    "render"
-  ],
-  "author": "maxmaher202-wq",
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["messenger", "facebook", "meta", "bot", "arabic", "miko"],
   "license": "MIT",
   "dependencies": {
-    "discord.js": "^14.16.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2"
   }
